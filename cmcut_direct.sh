@@ -5,7 +5,7 @@ eval "$(pyenv init -)"
 pyenv activate analysis
 if [ -e $2 ]
 then
-	python3 src/cmcut_direct.py $1 $2
+	python3 cmcut_direct.py $1 $2
 else
-	python3 src/cmcut_default.py $1
+	python3 cmcut_default.py $1
 fi
