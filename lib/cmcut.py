@@ -67,9 +67,12 @@ class SilentSection:
             duration_sec_units (DurationSecUnits): Durations of CM.
             margin_sec (float): Fluctuation of duration to be considered.
         """
-        for duration_sec_unit in duration_sec_units.durations_sec:
-            for section in following_sections:
-                duration_sec = section.end_sec - self.start_sec
+        for section in following_sections:
+            duration_sec = section.end_sec - self.start_sec
+            if duration_sec_units.durations_sec[-1] + margin_sec <= duration_sec:
+                break
+            for duration_sec_unit in duration_sec_units.durations_sec:
+                print (f"#### {self}, {section}, {duration_sec}")
                 if duration_sec_unit < duration_sec < duration_sec_unit + margin_sec:
                     return True
         return False
@@ -120,9 +123,10 @@ class NominalCMStructure:
             {'cm': 60}
             {'scene': 30, 'cm': 60}
             {'cm': 60, 'scene': 30}
+            {'monolithic_cm': 120}
         nominal_duration (Union[int, float]): Sum of durations in the structure.
     """
-    def __init__(self, cm_structure: Dict):
+    def __init__(self, cm_structure: Dict, margin_sec: float):
         """Initialize a NominalCMStructure object.
         Args:
             cm_structure (Dict): Raw nominal CM structure.
@@ -141,7 +145,7 @@ class NominalCMStructure:
             raise ValueError("CM Structure is empty.")
         self.nominal_duration = 0
         for key in cm_structure:
-            if key != "cm" and key != "scene":
+            if key != "cm" and key != "scene" and key != "monolithic_cm":
                 raise KeyError(f"Key must be either 'cm' or 'scene': {key}.")
             if type(cm_structure[key]) is not int and type(cm_structure[key]) is not float:
                 raise TypeError(
@@ -151,6 +155,11 @@ class NominalCMStructure:
                 raise ValueError(f"Value must be positive value: {cm_structure[key]}.")
             self.nominal_duration += cm_structure[key]
         self.composition = cm_structure
+        if type(margin_sec) is not int and type(margin_sec) is not float: 
+            raise TypeError(f"Type of margin sec must be either integer or float: {type(margin_sec)}.")
+        if margin_sec <= 0:
+            raise ValueError(f"margin_sec must be positive value: {margin_sec}.")
+        self.margin_sec = margin_sec
     def get_actual_cm_section(
         self, 
         last_cm_divider_end_sec: float, 
@@ -238,6 +247,7 @@ class ProgramScenes:
             last_scene_duration (int): Duration of last scene in the program.
         """
         silent_sections = cls.extract_silent_sections(loudness, duration_frame_threshold, frame_per_sec)
+        print (f"SILENT_SECTIONS: {silent_sections}")
         cm_sections = cls.construct_cm_sections(
             silent_sections, 
             duration_sec_units, 
@@ -332,19 +342,22 @@ class ProgramScenes:
         if has_monolithic_cm:
             cm_num_threshold = 0
 
-        margin_sec = 3
         cm_divider_candidates = []
         cm_sections = []
         structure_reference = 0
         target_cm_structure = cm_structures[structure_reference]
+        margin_sec = target_cm_structure.margin_sec
         nominal_cm_duration = target_cm_structure.nominal_duration
 
         for index, section in enumerate(silent_sections):
             if section.is_cm_divider_candidate(silent_sections[index+1:], duration_sec_units, margin_sec):
                 print (section)
                 cm_divider_candidates.append(section)
-            if len(cm_divider_candidates) > cm_num_threshold:
-                print (cm_divider_candidates)
+            candidates_could_be_cm = len(cm_divider_candidates) > cm_num_threshold
+            if len(target_cm_structure.composition) and "monolithic_cm" in target_cm_structure.composition:
+                candidates_could_be_cm = len(cm_divider_candidates) == 1
+            if candidates_could_be_cm:
+                print (section, cm_divider_candidates)
                 combined_duration_sec = section.end_sec - cm_divider_candidates[0].start_sec
                 print (combined_duration_sec)
                 if combined_duration_sec <= nominal_cm_duration:

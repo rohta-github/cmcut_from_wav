@@ -13,6 +13,7 @@ if __name__ == '__main__':
     default_cm_structures_dict = [{"cm": 60}] * 3 
     default_end_scene_duration_sec = 15
     default_has_monolithic_cm = False
+    default_margin_sec = 3.5
     duration_sec_units = DurationSecUnits([15, 30])
 
     program_property = {}
@@ -22,9 +23,10 @@ if __name__ == '__main__':
     cm_structures_dict = program_property.get("cm_structures", default_cm_structures_dict)
     end_scene_duration_sec = program_property.get("end_scene_duration", default_end_scene_duration_sec)
     has_monolithic_cm = program_property.get("has_monolithic_cm", default_has_monolithic_cm)
+    margin_sec = program_property.get("margin_sec", default_margin_sec)
     additional_duration_units = program_property.get("additional_duration_units", [])
     cm_structures = [
-        NominalCMStructure(value) for value in cm_structures_dict
+        NominalCMStructure(value, margin_sec) for value in cm_structures_dict
         ]
 
     for duration in additional_duration_units:
