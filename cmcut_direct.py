@@ -32,7 +32,7 @@ if __name__ == '__main__':
     for duration in additional_duration_units:
         if not duration in duration_sec_units.durations_sec:
             duration_sec_units = duration_sec_units.append_duration(duration)
-    print (f"#{duration_sec_units.durations_sec}")
+#    print (f"#{duration_sec_units.durations_sec}")
 
     loudness = FrameLoudness.get_loudness_from_wav(wav_path)
     program_scenes = ProgramScenes.construct_program_scenes(
@@ -45,5 +45,5 @@ if __name__ == '__main__':
         has_monolithic_cm
         )
     for section in program_scenes.scene_sections:
-        print (f"#{section[0], section[1] - section[0]}")
+#        print (f"#{section[0], section[1] - section[0]}")
 

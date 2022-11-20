@@ -72,7 +72,7 @@ class SilentSection:
             if duration_sec_units.durations_sec[-1] + margin_sec <= duration_sec:
                 break
             for duration_sec_unit in duration_sec_units.durations_sec:
-                print (f"#### {self}, {section}, {duration_sec}")
+#                print (f"#### {self}, {section}, {duration_sec}")
                 if duration_sec_unit < duration_sec < duration_sec_unit + margin_sec:
                     return True
         return False
@@ -247,7 +247,7 @@ class ProgramScenes:
             last_scene_duration (int): Duration of last scene in the program.
         """
         silent_sections = cls.extract_silent_sections(loudness, duration_frame_threshold, frame_per_sec)
-        print (f"SILENT_SECTIONS: {silent_sections}")
+#        print (f"SILENT_SECTIONS: {silent_sections}")
         cm_sections = cls.construct_cm_sections(
             silent_sections, 
             duration_sec_units, 
@@ -351,15 +351,15 @@ class ProgramScenes:
 
         for index, section in enumerate(silent_sections):
             if section.is_cm_divider_candidate(silent_sections[index+1:], duration_sec_units, margin_sec):
-                print (section)
+#                print (section)
                 cm_divider_candidates.append(section)
             candidates_could_be_cm = len(cm_divider_candidates) > cm_num_threshold
             if len(target_cm_structure.composition) and "monolithic_cm" in target_cm_structure.composition:
                 candidates_could_be_cm = len(cm_divider_candidates) == 1
             if candidates_could_be_cm:
-                print (section, cm_divider_candidates)
+#                print (section, cm_divider_candidates)
                 combined_duration_sec = section.end_sec - cm_divider_candidates[0].start_sec
-                print (combined_duration_sec)
+#                print (combined_duration_sec)
                 if combined_duration_sec <= nominal_cm_duration:
                     continue
                 if nominal_cm_duration < combined_duration_sec < nominal_cm_duration + margin_sec:
