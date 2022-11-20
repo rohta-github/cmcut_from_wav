@@ -1,6 +1,6 @@
 """Library to cut CM."""
 from __future__ import annotations
-from typing import List, Tuple, Dict, Union
+from typing import List, Tuple, Dict, Optional, Union
 import wave
 
 import numpy as np
@@ -42,6 +42,9 @@ class SilentSection:
         self.start_sec = start_frame_index/frame_per_sec
         self.end_sec = end_frame_index/frame_per_sec
 
+    def __repr__(self):
+        return repr([self.start_sec, self.end_sec, self.frame_per_sec])
+
     def center_sec(self) -> float:
         """Center timing of the section."""
         return (self.start_sec + self.end_sec)/2
@@ -52,7 +55,7 @@ class SilentSection:
 
     def is_cm_divider_candidate(
         self, 
-        last_section: SilentSection, 
+        following_sections: List[SilentSection], 
         duration_sec_units: DurationSecUnits, 
         margin_sec: float
         ) -> bool:
@@ -65,9 +68,10 @@ class SilentSection:
             margin_sec (float): Fluctuation of duration to be considered.
         """
         for duration_sec_unit in duration_sec_units.durations_sec:
-            duration_sec = self.center_sec() - last_section.center_sec()
-            if duration_sec_unit - margin_sec < duration_sec < duration_sec_unit + margin_sec:
-                return True
+            for section in following_sections:
+                duration_sec = section.end_sec - self.start_sec
+                if duration_sec_unit < duration_sec < duration_sec_unit + margin_sec:
+                    return True
         return False
 
 class FrameLoudness:
@@ -200,7 +204,6 @@ class DurationSecUnits:
         durations = self.durations_sec
         durations.append(duration_sec)
         durations_sorted = sorted(durations)
-#        print (durations_sorted)
         return DurationSecUnits(durations_sorted)
 
 class ProgramScenes:
@@ -235,14 +238,12 @@ class ProgramScenes:
             last_scene_duration (int): Duration of last scene in the program.
         """
         silent_sections = cls.extract_silent_sections(loudness, duration_frame_threshold, frame_per_sec)
-        print ([(value.start_sec, value.end_sec) for value in silent_sections])
         cm_sections = cls.construct_cm_sections(
             silent_sections, 
             duration_sec_units, 
             cm_structures, 
             has_monolithic_cm
             )
-#        print (cm_sections)
         first_start_sec_canditate = silent_sections[0].start_sec
         last_end_sec_canditate = silent_sections[-1].end_sec
         return ProgramScenes(
@@ -331,26 +332,24 @@ class ProgramScenes:
         if has_monolithic_cm:
             cm_num_threshold = 0
 
-        margin_sec = 2
-        last_section = SilentSection(0, 0, 1)
+        margin_sec = 3
         cm_divider_candidates = []
         cm_sections = []
         structure_reference = 0
-        print ([value.nominal_duration for value in cm_structures])
         target_cm_structure = cm_structures[structure_reference]
         nominal_cm_duration = target_cm_structure.nominal_duration
 
-        for section in silent_sections:
-#            print (section.start_sec)
-            if section.is_cm_divider_candidate(last_section, duration_sec_units, margin_sec):
-                cm_divider_candidates.append(last_section)
+        for index, section in enumerate(silent_sections):
+            if section.is_cm_divider_candidate(silent_sections[index+1:], duration_sec_units, margin_sec):
+                print (section)
+                cm_divider_candidates.append(section)
             if len(cm_divider_candidates) > cm_num_threshold:
-#                combined_duration_sec = section.center_sec() - cm_divider_candidates[0].center_sec()
-                combined_duration_sec = section.start_sec - cm_divider_candidates[0].end_sec
-#                print (section.start_sec, combined_duration_sec, nominal_cm_duration)
-                if combined_duration_sec <= nominal_cm_duration - margin_sec:
+                print (cm_divider_candidates)
+                combined_duration_sec = section.end_sec - cm_divider_candidates[0].start_sec
+                print (combined_duration_sec)
+                if combined_duration_sec <= nominal_cm_duration:
                     continue
-                if nominal_cm_duration - margin_sec < combined_duration_sec < nominal_cm_duration + margin_sec:
+                if nominal_cm_duration < combined_duration_sec < nominal_cm_duration + margin_sec:
                     actual_cm_section = target_cm_structure.get_actual_cm_section(
                         cm_divider_candidates[0].end_sec, section.start_sec
                         )
@@ -362,7 +361,6 @@ class ProgramScenes:
                     else:
                         break
                 cm_divider_candidates = []
-            last_section = section
         return cm_sections
 
 
@@ -379,20 +377,20 @@ class ProgramScenes:
             duration_sec_units (DurationSecUnits): CM Duration units in sec.
         """
         margin_sec = 1
-        last_section = SilentSection(0, 0, 1)
         cm_divider_candidates = []
         cm_sections = []
         continuity = False
-        for section in silent_sections:
-            if section.is_cm_divider_candidate(last_section, duration_sec_units, margin_sec):
-                cm_divider_candidates.append(last_section)
+        for index, section in enumerate(silent_sections):
+            if section.is_cm_divider_candidate(silent_sections[index+1:], duration_sec_units, margin_sec):
+                cm_divider_candidates.append(section)
                 continuity = True
             else:
-                if continuity and len(cm_divider_candidates) >= 1:
-                    cm_sections.append((cm_divider_candidates[0].end_sec, last_section.start_sec))
+                if continuity and len(cm_divider_candidates) >= 2:
+                    cm_sections.append((cm_divider_candidates[0].end_sec, cm_divider_candidates[-1].start_sec))
                     cm_divider_candidates = []
-            last_section = section
-#        print (cm_sections)
+                    continuity = False
+        if len(cm_divider_candidates) >= 2:
+            cm_sections.append((cm_divider_candidates[0].end_sec, cm_divider_candidates[-1].start_sec))
         return cm_sections
 
     @staticmethod

@@ -3,6 +3,7 @@ export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init --path)"
 eval "$(pyenv init -)"
 pyenv activate analysis
+cd $(dirname $0)
 if [ -e $2 ]
 then
 	python3 cmcut_direct.py $1 $2

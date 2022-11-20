@@ -27,15 +27,10 @@ if __name__ == '__main__':
         NominalCMStructure(value) for value in cm_structures_dict
         ]
 
-    if has_monolithic_cm:
-        for structure in cm_structures:
-            if not structure.nominal_duration in duration_sec_units.durations_sec:
-                duration_sec_units = duration_sec_units.append_duration(structure.nominal_duration)
-    if len(additional_duration_units) > 0:
-        for duration in additional_duration_units:
-            if not duration in duration_sec_units.durations_sec:
-                duration_sec_units = duration_sec_units.append_duration(duration)
-    print (duration_sec_units.durations_sec)
+    for duration in additional_duration_units:
+        if not duration in duration_sec_units.durations_sec:
+            duration_sec_units = duration_sec_units.append_duration(duration)
+    print (f"#{duration_sec_units.durations_sec}")
 
     loudness = FrameLoudness.get_loudness_from_wav(wav_path)
     program_scenes = ProgramScenes.construct_program_scenes(
