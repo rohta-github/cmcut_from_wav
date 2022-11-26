@@ -45,5 +45,5 @@ if __name__ == '__main__':
         has_monolithic_cm
         )
     for section in program_scenes.scene_sections:
-#        print (f"#{section[0], section[1] - section[0]}")
+        print (f"#{section[0], section[1] - section[0]}")
 

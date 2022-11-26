@@ -1,8 +1,8 @@
 """Library to cut CM."""
 from __future__ import annotations
 from typing import List, Tuple, Dict, Optional, Union
-import wave
 
+import get_loudness_from_wav
 import numpy as np
 
 
@@ -81,22 +81,29 @@ class FrameLoudness:
     """FrameLoudness
     This class represents timeseries of sound loudness of a TV program.
     Attributes:
-        values (np.ndarray]): Timeseries of loudness.
+        values (List[float]): Timeseries of loudness.
     """
-    def __init__(self, loudness_array: np.ndarray):
+    def __init__(self, loudness_values: List[float]):
         """Initialize a FrameLoudness object.
         Args:
-            loudness_array (np.ndarray]): Timeseries of loudness.
+            loudness_array (List[float]): Timeseries of loudness.
         """
-        if len(loudness_array.shape) != 1:
-            raise ValueError(
-                f"loudness_array must be 1-D array: {len(loudness_array.shape)}."
+        type_error_message = "Loudness_array must be List[float]"
+        if type(loudness_values) is not list:
+            raise TypeError(
+                f"{type_error_message}: {type(loudness_values)}."
                 )
-        if loudness_array.dtype != np.uint16:
-            raise ValueError(
-                f"Loudness must be np.uint16 value: {loudness_array.dtype}."
+        if len(loudness_values) <= 0:
+            raise TypeError(
+                f"{type_error_message}: length {len(loudness_values)}."
                 )
-        self.values = loudness_array
+        filtered_values = list(filter(lambda x: type(x) is float, loudness_values))
+        if len(filtered_values) != len(loudness_values):
+            raise TypeError(type_error_message)
+        if len(list(filter(lambda x: x<0, filtered_values))) > 0:
+            raise TypeError("Loudness must be positive.")
+
+        self.values = loudness_values
 
     @classmethod
     def get_loudness_from_wav(cls, wav_path:str) -> FrameLoudness:
@@ -104,13 +111,8 @@ class FrameLoudness:
         Args:
             wav_path (str): A path of wav file.
         """
-        wr = wave.open(wav_path, 'r')
-
-        # waveの実データを取得し、数値化
-        data = wr.readframes(wr.getnframes())
-        wr.close()
-        data_array = np.frombuffer(data, dtype=np.int16)
-        return FrameLoudness(np.array(np.abs(data_array), dtype=np.uint16))
+        loudness_values = get_loudness_from_wav.wav2loudness(wav_path)
+        return FrameLoudness(loudness_values)
 
 class NominalCMStructure:
     """NominalCMStructure
