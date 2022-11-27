@@ -1,0 +1,15 @@
+{
+    "has_monolithic_cm": false,
+    "cm_structures": [
+        {
+            "cm": 135
+        },
+        {
+            "cm": 105
+        }
+    ],
+    "end_scene_duration": 0,
+    "additional_duration_units": [60],
+    "margin_sec": 2,
+    "duration_threshold": 3000
+}
