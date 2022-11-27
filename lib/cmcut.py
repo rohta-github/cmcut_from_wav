@@ -1,5 +1,6 @@
 """Library to cut CM."""
 from __future__ import annotations
+import copy
 from typing import List, Tuple, Dict, Optional, Union
 
 import get_loudness_from_wav
@@ -217,6 +218,16 @@ class DurationSecUnits:
         durations_sorted = sorted(durations)
         return DurationSecUnits(durations_sorted)
 
+    def remove_duration(self, duration_sec: Union[int, float]) -> DurationSecUnits:
+        """Remove a duration from the units.
+        Args:
+            duration_sec (Union[int, float]): Duration to be removed from the units.
+        """
+        durations = self.durations_sec
+        if duration_sec in durations:
+            durations.remove(duration_sec)
+        return DurationSecUnits(durations)
+
 class ProgramScenes:
     """ProgramScenes
     This class defines TV program scenes using both start and end timing.
@@ -352,8 +363,12 @@ class ProgramScenes:
         nominal_cm_duration = target_cm_structure.nominal_duration
 
         for index, section in enumerate(silent_sections):
-            if section.is_cm_divider_candidate(silent_sections[index+1:], duration_sec_units, margin_sec):
-#                print (section)
+#            print (section)
+            tmp_duration_sec_units = copy.deepcopy(duration_sec_units)
+            if "monolithic_cm" in target_cm_structure.composition:
+                tmp_duration_sec_units = duration_sec_units.append_duration(target_cm_structure.composition["monolithic_cm"])
+            if section.is_cm_divider_candidate(silent_sections[index+1:], tmp_duration_sec_units, margin_sec):
+#                print (f"CANDIDATE: {section}")
                 cm_divider_candidates.append(section)
             candidates_could_be_cm = len(cm_divider_candidates) > cm_num_threshold
             if len(target_cm_structure.composition) and "monolithic_cm" in target_cm_structure.composition:
@@ -361,7 +376,7 @@ class ProgramScenes:
             if candidates_could_be_cm:
 #                print (section, cm_divider_candidates)
                 combined_duration_sec = section.end_sec - cm_divider_candidates[0].start_sec
-#                print (combined_duration_sec)
+#                print (f"COMB_DURA_SEC: {combined_duration_sec}")
                 if combined_duration_sec <= nominal_cm_duration:
                     continue
                 if nominal_cm_duration < combined_duration_sec < nominal_cm_duration + margin_sec:
