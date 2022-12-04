@@ -33,10 +33,10 @@ class SilentSection:
             raise ValueError(f"start_frame_index must be non-negative: {start_frame_index}.")
         if type(end_frame_index) is not int:
             raise TypeError(f"Type of end_frame_index must be int: {type(end_frame_index)}.")
-        if end_frame_index < 0:
-            raise ValueError(f"end_frame_index must be non-negative: {end_frame_index}.")
-        if start_frame_index > end_frame_index:
-            raise ValueError(f"start_frame_index must be less equal than end_frame_index: {start_frame_index} {end_frame_index}.")
+        if end_frame_index <= 0:
+            raise ValueError(f"end_frame_index must be positive: {end_frame_index}.")
+        if start_frame_index >= end_frame_index:
+            raise ValueError(f"start_frame_index must be less than end_frame_index: {start_frame_index} {end_frame_index}.")
         if frame_per_sec <= 0:
             raise ValueError(f"frame_per_sec must be positive: {frame_per_sec}.")
         self.frame_per_sec = frame_per_sec
@@ -45,10 +45,6 @@ class SilentSection:
 
     def __repr__(self):
         return repr([self.start_sec, self.end_sec, self.frame_per_sec])
-
-    def center_sec(self) -> float:
-        """Center timing of the section."""
-        return (self.start_sec + self.end_sec)/2
 
     def duration_sec(self) -> float:
         """Duration of the section."""
@@ -70,11 +66,12 @@ class SilentSection:
         """
         for section in following_sections:
             duration_sec = section.end_sec - self.start_sec
-            if duration_sec_units.durations_sec[-1] + margin_sec <= duration_sec:
+            largest_duration_unit_sec = duration_sec_units.durations_sec[-1] 
+            if largest_duration_unit_sec + margin_sec <= duration_sec:
                 break
             for duration_sec_unit in duration_sec_units.durations_sec:
 #                print (f"#### {self}, {section}, {duration_sec}")
-                if duration_sec_unit < duration_sec < duration_sec_unit + margin_sec:
+                if duration_sec_unit < duration_sec <= duration_sec_unit + margin_sec:
                     return True
         return False
 
@@ -234,6 +231,9 @@ class ProgramScenes:
     Attributes:
         scene_sections (List[Tuple[float]]): List of start and end timing.
     """
+    starting_range_sec = 5
+    end_margin_sec = 1
+
     def __init__(self, scene_sections: List[Tuple[float]]):
         self.scene_sections = scene_sections
     
@@ -423,8 +423,9 @@ class ProgramScenes:
             cm_sections.append((cm_divider_candidates[0].end_sec, cm_divider_candidates[-1].start_sec))
         return cm_sections
 
-    @staticmethod
+    @classmethod
     def generate_scenes(
+        cls,
         first_start_sec_candidate: float,
         last_end_sec_candidate: float,
         cm_sections: List[Tuple[float]], 
@@ -439,15 +440,13 @@ class ProgramScenes:
         """
         scenes = []
         start_sec = 0
-        start_margin_sec = 5
-        end_margin_sec = 1
-        if first_start_sec_candidate < start_margin_sec:
+        if first_start_sec_candidate < cls.starting_range_sec:
             start_sec = first_start_sec_candidate
         for section in cm_sections:
             scenes.append((start_sec, section[0]))
             start_sec = section[1]
         if last_scene_duration != 0:
-            scenes.append((start_sec, start_sec + last_scene_duration + end_margin_sec))
+            scenes.append((start_sec, start_sec + last_scene_duration + cls.end_margin_sec))
         else:
             scenes.append((start_sec, last_end_sec_candidate))
         return scenes
