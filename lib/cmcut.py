@@ -390,7 +390,7 @@ class ProgramScenes:
                         nominal_cm_duration = target_cm_structure.nominal_duration
                     else:
                         break
-                cm_divider_candidates = []
+                cm_divider_candidates = [cm_divider_candidates[-1]]
         return cm_sections
 
 
