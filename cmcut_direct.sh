@@ -11,7 +11,6 @@ then
 	python3 cmcut_direct.py $1 $2 > tmp.sh
 	RES=`tail -1 tmp.sh|awk -F '#' '{print int($2)}'`
 	DIFF=$((RES-EFFT)) 
-	echo $DIFF
 	if [ $DIFF -gt -$ALLOWED_MARGIN -a $DIFF -lt $ALLOWED_MARGIN ]
 	then
 		echo "#$EFFT" >> tmp.sh
